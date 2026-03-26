@@ -11,6 +11,9 @@ export default function ImageEditor() {
   const [contrast, setContrast] = useState(100);
   const [blur, setBlur] = useState(0);
   const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStart = useRef({ x: 0, y: 0 });
   const [darkColor, setDarkColor] = useState('#f5f5dc'); // Cream
   const [lightColor, setLightColor] = useState('#8b0000'); // Dark Red
   const [transparentLight, setTransparentLight] = useState(false);
@@ -141,6 +144,7 @@ export default function ImageEditor() {
     setContrast(100);
     setBlur(0);
     setZoom(1);
+    setPan({ x: 0, y: 0 });
     setDarkColor('#f5f5dc');
     setLightColor('#8b0000');
     setTransparentLight(false);
@@ -166,10 +170,26 @@ export default function ImageEditor() {
     { name: '거친 느낌 3', dark: '#2B1B17', light: '#8B0000', group: 'rough' },
   ];
 
+  const handlePointerDown = (e: React.PointerEvent) => {
+    setIsDragging(true);
+    dragStart.current = { x: e.clientX - pan.x, y: e.clientY - pan.y };
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!isDragging) return;
+    setPan({ x: e.clientX - dragStart.current.x, y: e.clientY - dragStart.current.y });
+  };
+
+  const handlePointerUp = (e: React.PointerEvent) => {
+    setIsDragging(false);
+    (e.target as HTMLElement).releasePointerCapture(e.pointerId);
+  };
+
   return (
-    <div className="flex flex-col md:flex-row h-screen bg-neutral-900 text-neutral-100 font-sans">
+    <div className="flex flex-col md:flex-row h-screen bg-neutral-900 text-neutral-100 font-sans overflow-hidden">
       {/* Main Canvas Area */}
-      <div className="flex-1 flex items-center justify-center p-8 relative overflow-hidden bg-neutral-950">
+      <div className="h-[50vh] md:h-auto md:flex-1 flex items-center justify-center p-4 md:p-8 relative overflow-hidden bg-neutral-950 shrink-0">
         {!imageSrc ? (
           <div className="flex flex-col items-center justify-center space-y-4 text-neutral-500">
             <div className="w-24 h-24 rounded-full bg-neutral-800 flex items-center justify-center">
@@ -183,24 +203,30 @@ export default function ImageEditor() {
             </label>
           </div>
         ) : (
-          <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
+          <div 
+            className={`relative w-full h-full flex items-center justify-center overflow-hidden ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+            onPointerCancel={handlePointerUp}
+          >
             <canvas
               ref={canvasRef}
-              className="max-w-full max-h-full object-contain shadow-2xl rounded-lg border border-neutral-800 transition-transform duration-200"
-              style={{ transform: `scale(${zoom})` }}
+              className="max-w-full max-h-full object-contain shadow-2xl rounded-lg border border-neutral-800 transition-transform duration-75"
+              style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})` }}
             />
             
             {/* Zoom Controls */}
             <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center space-x-1 bg-neutral-800/90 backdrop-blur p-1.5 rounded-full border border-neutral-700 shadow-lg z-10">
-              <button onClick={() => setZoom(z => Math.max(0.25, z - 0.5))} className="p-1.5 text-neutral-400 hover:text-white hover:bg-neutral-700 rounded-full transition-colors" title="축소">
+              <button onClick={() => setZoom(z => Math.max(0.1, z - 0.1))} className="p-1.5 text-neutral-400 hover:text-white hover:bg-neutral-700 rounded-full transition-colors" title="축소">
                 <ZoomOut size={18} />
               </button>
               <span className="text-xs font-mono w-12 text-center text-neutral-300">{Math.round(zoom * 100)}%</span>
-              <button onClick={() => setZoom(z => Math.min(5, z + 0.5))} className="p-1.5 text-neutral-400 hover:text-white hover:bg-neutral-700 rounded-full transition-colors" title="확대">
+              <button onClick={() => setZoom(z => Math.min(5, z + 0.1))} className="p-1.5 text-neutral-400 hover:text-white hover:bg-neutral-700 rounded-full transition-colors" title="확대">
                 <ZoomIn size={18} />
               </button>
               <div className="w-px h-4 bg-neutral-700 mx-1"></div>
-              <button onClick={() => setZoom(1)} className="p-1.5 text-neutral-400 hover:text-white hover:bg-neutral-700 rounded-full transition-colors" title="화면에 맞추기">
+              <button onClick={() => { setZoom(1); setPan({ x: 0, y: 0 }); }} className="p-1.5 text-neutral-400 hover:text-white hover:bg-neutral-700 rounded-full transition-colors" title="화면에 맞추기">
                 <Maximize size={18} />
               </button>
             </div>
@@ -209,7 +235,7 @@ export default function ImageEditor() {
       </div>
 
       {/* Controls Sidebar */}
-      <div className="w-full md:w-80 bg-neutral-900 border-t md:border-t-0 md:border-l border-neutral-800 p-6 flex flex-col h-full overflow-y-auto">
+      <div className="flex-1 md:flex-none w-full md:w-80 bg-neutral-900 border-t md:border-t-0 md:border-l border-neutral-800 p-6 flex flex-col overflow-y-auto">
         <div className="flex items-center space-x-3 mb-8">
           <SlidersHorizontal className="text-red-500" />
           <h1 className="text-xl font-bold tracking-tight">이중톤(Duotone) 에디터</h1>
