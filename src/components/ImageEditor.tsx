@@ -6,6 +6,7 @@ export default function ImageEditor() {
   const [threshold, setThreshold] = useState(128);
   const [noise, setNoise] = useState(0);
   const [halftone, setHalftone] = useState(0);
+  const [halftoneAngle, setHalftoneAngle] = useState(45);
   const [brightness, setBrightness] = useState(100);
   const [contrast, setContrast] = useState(100);
   const [blur, setBlur] = useState(0);
@@ -59,7 +60,7 @@ export default function ImageEditor() {
     const darkRgb = hexToRgb(darkColor);
     const lightRgb = hexToRgb(lightColor);
 
-    const angle = Math.PI / 4;
+    const angle = (halftoneAngle * Math.PI) / 180;
     const sinA = Math.sin(angle);
     const cosA = Math.cos(angle);
     const freq = halftone > 0 ? (Math.PI * 2) / halftone : 0;
@@ -109,7 +110,7 @@ export default function ImageEditor() {
     }
 
     ctx.putImageData(imageData, 0, 0);
-  }, [threshold, noise, halftone, brightness, contrast, blur, darkColor, lightColor, transparentLight]);
+  }, [threshold, noise, halftone, halftoneAngle, brightness, contrast, blur, darkColor, lightColor, transparentLight]);
 
   useEffect(() => {
     if (imageSrc) {
@@ -135,6 +136,7 @@ export default function ImageEditor() {
     setThreshold(128);
     setNoise(0);
     setHalftone(0);
+    setHalftoneAngle(45);
     setBrightness(100);
     setContrast(100);
     setBlur(0);
@@ -148,6 +150,21 @@ export default function ImageEditor() {
     setDarkColor(lightColor);
     setLightColor(darkColor);
   };
+
+  const applyPreset = (dark: string, light: string) => {
+    setDarkColor(dark);
+    setLightColor(light);
+    setTransparentLight(false);
+  };
+
+  const colorPresets = [
+    { name: '팝아트 1', dark: '#1A1A24', light: '#FF007F', group: 'pop' },
+    { name: '팝아트 2', dark: '#4A00E0', light: '#F8E71C', group: 'pop' },
+    { name: '팝아트 3', dark: '#D0021B', light: '#50E3C2', group: 'pop' },
+    { name: '거친 느낌 1', dark: '#111111', light: '#E65100', group: 'rough' },
+    { name: '거친 느낌 2', dark: '#2C3525', light: '#D4C4A8', group: 'rough' },
+    { name: '거친 느낌 3', dark: '#2B1B17', light: '#8B0000', group: 'rough' },
+  ];
 
   return (
     <div className="flex flex-col md:flex-row h-screen bg-neutral-900 text-neutral-100 font-sans">
@@ -260,10 +277,59 @@ export default function ImageEditor() {
 
             <div className="space-y-2">
               <div className="flex justify-between">
+                <label className="text-xs text-neutral-400">하프톤 각도 (Angle)</label>
+                <span className="text-xs text-neutral-500 font-mono">{halftoneAngle}°</span>
+              </div>
+              <input type="range" min="-90" max="90" value={halftoneAngle} onChange={(e) => setHalftoneAngle(Number(e.target.value))} className="w-full accent-red-500" disabled={!imageSrc || halftone === 0} />
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex justify-between">
                 <label className="text-xs text-neutral-400">노이즈 (Noise)</label>
                 <span className="text-xs text-neutral-500 font-mono">{noise}</span>
               </div>
               <input type="range" min="0" max="100" value={noise} onChange={(e) => setNoise(Number(e.target.value))} className="w-full accent-red-500" disabled={!imageSrc} />
+            </div>
+          </div>
+
+          {/* Color Presets */}
+          <div className="space-y-4">
+            <label className="text-sm font-semibold text-neutral-400 uppercase tracking-wider">색상 프리셋 (Presets)</label>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-2">
+                <span className="text-xs text-neutral-500 font-medium">팝아트 (Pop Art)</span>
+                <div className="flex flex-col space-y-2">
+                  {colorPresets.filter(p => p.group === 'pop').map((preset, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => applyPreset(preset.dark, preset.light)}
+                      disabled={!imageSrc}
+                      className="flex items-center h-8 rounded overflow-hidden border border-neutral-700 hover:border-neutral-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      title={preset.name}
+                    >
+                      <div className="w-1/2 h-full" style={{ backgroundColor: preset.dark }}></div>
+                      <div className="w-1/2 h-full" style={{ backgroundColor: preset.light }}></div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="space-y-2">
+                <span className="text-xs text-neutral-500 font-medium">거친 느낌 (Rough)</span>
+                <div className="flex flex-col space-y-2">
+                  {colorPresets.filter(p => p.group === 'rough').map((preset, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => applyPreset(preset.dark, preset.light)}
+                      disabled={!imageSrc}
+                      className="flex items-center h-8 rounded overflow-hidden border border-neutral-700 hover:border-neutral-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      title={preset.name}
+                    >
+                      <div className="w-1/2 h-full" style={{ backgroundColor: preset.dark }}></div>
+                      <div className="w-1/2 h-full" style={{ backgroundColor: preset.light }}></div>
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
 
