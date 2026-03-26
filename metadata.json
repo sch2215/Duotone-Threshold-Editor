@@ -1,0 +1,5 @@
+{
+  "name": "Duotone Threshold Editor",
+  "description": "An image editor that applies a high-contrast threshold effect and remaps colors to create a striking 2-tone posterized style.",
+  "requestFramePermissions": []
+}
